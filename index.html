@@ -50,7 +50,7 @@ const BUYERS=[
 const S={cash:0,cred:60,debt:0,i:0,over:false};
 const $=id=>document.getElementById(id);
 const log=(m,c)=>{const d=document.createElement('div');if(c)d.className=c;d.textContent=m;$('log').prepend(d);};
-function hud(){$('cash').textContent='$'+S.cash;$('cred').textContent=S.cred+'%';$('debt').textContent='$'+S.debt;$('n').textContent=Math.min(S.i+1,10);}
+function hud(){$('cash').textContent='$'+S.cash;$('cred').textContent=S.cred;$('debt').textContent='$'+S.debt;$('n').textContent=Math.min(S.i+1,10);}
 function next(){
   if(S.i>=10)return end();
   const b=BUYERS[S.i];
