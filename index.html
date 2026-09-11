@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IOU - Sell Your Promises</title>
+<style>
+:root{--bg:#15120e;--card:#1f1a13;--line:#382f20;--ink:#f0e9dc;--dim:#a2937d;--accent:#e8c05a;--bad:#e0705e;--good:#8fd18f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:34px 18px}
+h1{font-size:26px;letter-spacing:6px;color:var(--accent);text-shadow:0 0 22px rgba(232,192,90,.25)}
+.sub{color:var(--dim);font-size:11px;letter-spacing:2.5px;margin-top:8px;text-transform:uppercase;text-align:center}
+#hud{margin:18px 0;font-size:12px;color:var(--dim);letter-spacing:1.5px;text-align:center;line-height:2}
+#hud b{color:var(--accent)}
+#buyer{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;width:min(480px,92vw);font-size:13.5px;line-height:1.7;min-height:96px}
+#choices{display:grid;gap:10px;width:min(480px,92vw);margin-top:12px}
+button{cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:inherit;font-size:12.5px;padding:13px 16px;text-align:left;transition:.15s}
+button:hover:not(:disabled){border-color:var(--accent);transform:translateY(-2px)}
+button small{display:block;color:var(--dim);font-size:10px;margin-top:4px}
+#log{margin-top:14px;width:min(480px,92vw);font-size:11.5px;color:var(--dim);line-height:1.8;max-height:110px;overflow-y:auto}
+#log .win{color:var(--good)} #log .lose{color:var(--bad)}
+#overlay{position:fixed;inset:0;background:rgba(15,12,8,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:20px;z-index:10}
+#overlay.show{display:flex}
+#overlay h2{font-size:26px;letter-spacing:5px;color:var(--accent)}
+#overlay p{color:var(--dim);max-width:440px;line-height:1.7;font-size:13px}
+#again{background:var(--accent);border:none;color:#2a2008;font-weight:700;padding:13px 30px;border-radius:12px;font-size:14px;letter-spacing:2px}
+</style>
+</head>
+<body>
+<h1>I O U</h1>
+<div class="sub">the game where you sell IOUs &middot; 10 buyers &middot; become liquid</div>
+<div id="hud">CASH <b id="cash">$0</b> &middot; CREDIBILITY <b id="cred">60</b>% &middot; DEBTS DUE <b id="debt">$0</b> &middot; BUYER <b id="n">1</b>/10</div>
+<div id="buyer"></div>
+<div id="choices"></div>
+<div id="log"></div>
+<div id="overlay"><h2 id="ovT"></h2><p id="ovB"></p><button id="again">ISSUE MORE PAPER</button></div>
+<script>
+const BUYERS=[
+ ['Retirement-age neighbor','wants "a safe little yield"',1.0],
+ ['Crypto guy at the gym','asks about APY before hello',1.6],
+ ['Your cousin Dale','will buy anything you sell',0.8],
+ ['Local pawn broker','has seen every trick',2.2],
+ ['Bored venture capitalist','collects exotic risk',2.6],
+ ['High-school buddy','trusts you completely, unfortunately',0.7],
+ ['Farmer with cash in a tin','wants something paper-y',1.2],
+ ['Day trader','will flip your IOU by lunch',1.8],
+ ['Retired math teacher','will check your math',2.0],
+ ['A raccoon (somehow)','payment in shiny objects',0.5],
+];
+const S={cash:0,cred:60,debt:0,i:0,over:false};
+const $=id=>document.getElementById(id);
+const log=(m,c)=>{const d=document.createElement('div');if(c)d.className=c;d.textContent=m;$('log').prepend(d);};
+function hud(){$('cash').textContent='$'+S.cash;$('cred').textContent=S.cred+'%';$('debt').textContent='$'+S.debt;$('n').textContent=Math.min(S.i+1,10);}
+function next(){
+  if(S.i>=10)return end();
+  const b=BUYERS[S.i];
+  $('buyer').innerHTML='<b>'+b[0]+'</b> approaches. '+b[1]+'. What do you promise them?';
+  const box=$('choices');box.innerHTML='';
+  [['Honest IOU: pay back 110% in a month','safe sale, small margin',110],
+   ['Spicy IOU: pay back 150% "guaranteed"','bigger sale, credibility check',150],
+   ['Full Ponzi: 300% returns, vibes-based','max cash now, big credibility risk',300]].forEach(o=>{
+    const btn=document.createElement('button');
+    btn.innerHTML=o[0]+'<small>'+o[1]+'</small>';
+    btn.onclick=()=>sell(b,o[2]);
+    box.appendChild(btn);
+  });
+  hud();
+}
+function sell(b,pct){
+  const face=Math.round((30+Math.random()*50)*b[2]*(S.cred/60));
+  const payoff=Math.round(face*pct/100);
+  let roll=Math.random()*100;
+  if(pct===110){S.cred=Math.min(100,S.cred+4);}
+  else if(pct===150){if(roll>S.cred+20){S.cred=Math.max(0,S.cred-12);log(b[0]+' got suspicious but signed anyway. Credibility hit.','lose');}}
+  else{if(roll>S.cred){S.cred=Math.max(0,S.cred-25);log(b[0]+' almost walked. You saw sweat. Credibility -25.','lose');}else log(b[0]+' bought the whole pitch. Concerning.','win');}
+  S.cash+=face;S.debt+=payoff;
+  log('Sold $'+face+' IOU to '+b[0]+' (owe $'+payoff+')','win');
+  /* debts come due randomly */
+  if(S.debt>0&&Math.random()<.35){
+    if(S.cash>=S.debt){S.cash-=S.debt;log('Paid off $'+S.debt+' of old IOUs. Clean-ish.','win');S.cred=Math.min(100,S.cred+6);S.debt=0;}
+    else{S.cred=Math.max(0,S.cred-20);log('An old IOU came due and you stalled. Word travels.','lose');}
+  }
+  if(S.cred<=0){S.over=true;return end('PAPER COLLAPSE','Credibility hit zero on buyer '+(S.i+1)+'. Cash: $'+S.cash+', debts: $'+S.debt+'. Dale is the only one still waving at you.');}
+  S.i++;next();
+}
+function end(t,b){
+  S.over=true;
+  if(!t){
+    const net=S.cash-Math.min(S.debt,S.cash);
+    t=net>=300?'PAPER TYCOON':net>=100?'LIQUID, MOSTLY':'TECHNICALLY AFLOAT';
+    b='Ten buyers served. Cash $'+S.cash+', outstanding IOUs $'+S.debt+', credibility '+S.cred+'%. Net worth: $'+net+' of other people\'s trust.';
+  }
+  $('ovT').textContent=t;$('ovB').textContent=b;$('overlay').classList.add('show');
+}
+$('again').onclick=()=>location.reload();
+next();
+</script>
+</body>
+</html>
